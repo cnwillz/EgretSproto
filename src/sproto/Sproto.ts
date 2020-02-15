@@ -1,4 +1,8 @@
-
+/**
+ * @author	lindx
+ * @license Unknown
+ * git: https://gitee.com/lindx-code/sproto-ts
+ */
 const gettype=Object.prototype.toString
 
 const SPROTO_TARRAY = 0x80;
