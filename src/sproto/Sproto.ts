@@ -1,6 +1,6 @@
 /**
  * @author	lindx
- * @license Unknown
+ * @license BSD-2-Clause
  * git: https://gitee.com/lindx-code/sproto-ts
  */
 const gettype=Object.prototype.toString
