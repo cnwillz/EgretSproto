@@ -151,7 +151,7 @@ function _uint32_to_uint64(data, data_idx: number, negative: number|boolean) {
 
 function _gen_response(self, response, spindex, session) {
 	return function(args) {
-		self.header_tmp.type = null;
+		this.header_tmp.type = null;
 		self.header_tmp.session = session;
 
 		let header = self.encode(self.__pack, self.header_tmp);
@@ -1127,7 +1127,7 @@ class Sproto {
 		}
 	}
 
-	private queryprotocol(name: string) {
+	private getProtocol(name: string) {
 		return this.p[name];
 	}
 
@@ -1160,7 +1160,7 @@ class Sproto {
 
 	attach() {
 		return function (name, args, session?) {
-			let p = this.queryprotocol(name);
+			let p = this.getProtocol(name);
 			if (_isNull(p)) {
 				console.error("[sproto error]: can't found ", name);
 				return ;

@@ -16,7 +16,10 @@
 		"bin-debug/LoadingUI.js",
 		"bin-debug/Main.js",
 		"bin-debug/Platform.js",
+		"bin-debug/core/sproto/RpcMessage.js",
 		"bin-debug/core/sproto/Sproto.js",
-		"bin-debug/core/sproto/SprotoCodex.js"
+		"bin-debug/core/sproto/SprotoManager.js",
+		"bin-debug/core/sproto/SprotoProtocol.js",
+		"bin-debug/core/sproto/SprotoRpc.js"
 	]
 }

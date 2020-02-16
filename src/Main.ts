@@ -37,65 +37,55 @@ class Main extends egret.DisplayObjectContainer {
     }
 
     private doTest() {
-        let proto = `
+        let c2sProto = `
 .package {
-    type 0: integer
-    session 1: integer
+	type 0 : integer
+	session 1 : integer
 }
 
-foobar 1 {
-    request {
-        what 0 : string
-        value 1: string
-    }
-    response {
-        ok 0 : boolean
-    }
+handshake 1 {
+	response {
+		msg 0  : string
+	}
 }
 
 get 2 {
-    request {
-        what 0 : string
-    }
-    response {
-        result 0 : string
-    }
+	request {
+		what 0 : string
+	}
+	response {
+		result 0 : string
+	}
 }
 
 set 3 {
-    request {
-        what 0 : string
-        value 1 : string
-    }
+	request {
+		what 0 : string
+		value 1 : string
+	}
 }
-`;
-        //
-        let sp = new Sproto(proto);
 
-        console.log("======================test1");
-        let session = 1;
-        let client_request = sp.attach();
-        let req = client_request("foobar", { what: "hello", value: "lindx 不喜欢写代码" }, session);
-        let data = sp.dispatch(req);
-        //　如果是一个　request 请求， data　包含replay="REQUEST"　以及　result　数据
-        console.log(data);
+quit 4 {}
+        `
+        let s2cProto = `
+.package {
+	type 0 : integer
+	session 1 : integer
+}
 
-        let resp = data.response({ ok: false });
-        data = sp.dispatch(resp);
-        // 如果是一个　response 响应，那么　data 包含　replay＝"RESPONSE", session, result
-        console.log(data);
+heartbeat 1 {}
+        `
+        let s2c = new sproto.SprotoManager(s2cProto)
+        let c2s = new sproto.SprotoManager(c2sProto)
+        let rpc = new sproto.SprotoRpc(s2c, c2s)
+        let srpc = new sproto.SprotoRpc(c2s, s2c)
 
-        console.log("======================test2");
-        let packbuffer = sp.pencode("package", {session: 12, type: 0});
-        let rt = sp.pdecode("package", packbuffer);
-        console.log(rt);
-        console.log(rt["session"])
-        //*/
-
-        // let sm = new sproto.SprotoManager(proto);
-        // let pb = sm.encodePackage("package", {session: 12, type: 0});
-        // let rt = sm.decodePackage("package", pb);
-        // console.log(rt);
+        let pk = rpc.packRequest("handshake", null, 1)
+        // console.log(pk)
+        pk = rpc.packRequest("set", { what : "hello", value : "world" }, 2)
+        let res = srpc.unpackMessage(pk)
+        console.log(res)
+        res.response(null)
     }
 
     private onAddToStage(event: egret.Event) {
@@ -118,7 +108,8 @@ set 3 {
         }
 
         this.runGame().catch(e => {
-            console.log(e);
+            // console.error(e);
+            console.error(e.stack);
         })
 
 
@@ -144,7 +135,9 @@ set 3 {
         console.log(userInfo);
 
         this.doTest();
-        this.testSocket();
+        // console.log("test2() start")
+        // this.test2();
+        // this.testSocket();
     }
 
     private async loadResource() {

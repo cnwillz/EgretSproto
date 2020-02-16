@@ -11,58 +11,46 @@ namespace sproto {
 
     const SPROTO_ENCODE_BUFFERSIZE = 2050;
 
-    const SPROTO_REQUEST = 0;
-    const SPROTO_RESPONSE = 1;
+    export const SPROTO_REQUEST = 0;
+    export const SPROTO_RESPONSE = 1;
 
-    class Field {
-        public name: string;
-        public tag: number;
-        public type: string;
-        constructor(public _name: string, public _tag: number, public _type: string) {
-            this.name = _name;
-            this.tag = _tag;
-            this.type = _type;
+    class SprotoField {
+        constructor(public name: string, public tag: number, public type: string) {
         }
     }
 
 
-    class Stype {
-        public f: Field[] = [];
+    class SprotoType {
+        public f: SprotoField[] = [];
         public maxn: number = 0;
 
         constructor(public name: string) {
-
         }
     }
 
-    class Protocol {
-        public st: Stype[] = [null, null];
-        public name: string;
-        public tag: number;
-        constructor(public _name: string, public _tag: number) {
-            this.name = _name;
-            this.tag = _tag;
+    class SprotoProtocol {
+        public st: SprotoType[] = [null, null];
+        constructor(public name: string, public tag: number) {
         }
     }
 
     export class SprotoManager {
-        private t: Stype[] = [];
-        private p: Protocol[] = [];
+        private t: SprotoType[] = [];
+        private p: SprotoProtocol[] = [];
         private buffer: bufferjs.Buffer;
-        private sz: number;
+        //private sz: number;
         private static sp_tb: SprotoManager[] = [];
-        private header_tmp;
+        //private header_tmp;
 
-        constructor(public ctx: string, 
-            public __session = [], 
-            public __pack = "package", 
-            public __pcatch = []) {
+        constructor(public ctx: string,
+            public tagProtocols = []
+            ) {
 
             ctx = this.common_filter(ctx);
             this.parse(ctx);
             // this.buffer = Buffer.allocUnsafe(4);
             this.buffer = bufferjs.Buffer.allocUnsafe(2048);
-            this.header_tmp = {type: null, session: null};
+            // this.header_tmp = {type: null, session: null};
         }
 
         // 注释过滤
@@ -111,9 +99,9 @@ namespace sproto {
                 console.error("[sproto error]: syntax error at tag(%d) number less 0 at protocol %s", tag, name);
             }
 
-            let proto = new Protocol(name, tag);
+            let proto = new SprotoProtocol(name, tag);
             this.p[name] = proto;
-            this.__pcatch[tag] = proto;
+            this.tagProtocols[tag] = proto;
 
             let requeststr = protocol.match(/request\s*{[^{}]*}/g);
             let responsestr = protocol.match(/response\s*{[^{}]*}/g);
@@ -136,7 +124,7 @@ namespace sproto {
                 name = name.substr(1, name.length); // substr 去掉第一个字符的点.
             }
 
-            let stype = new Stype(name);
+            let stype = new SprotoType(name);
             let content = type.input.replace(/.?{|}/g, "");
             let lines = content.match(/\w+\s+\-?\d+\s*:\s*\*?\w+/gi);
             let errsyntax = content.match(/[a-z]+\s*:\s*\*?[a-z]+/i)
@@ -157,7 +145,7 @@ namespace sproto {
             for (let i of lines) {
                 let ft = i.split(/\s*(\-?\d+)?\s*:\s*/g);
                 let tag = Number(ft[1]);
-                let f = new Field(ft[0], tag, ft[2]);
+                let f = new SprotoField(ft[0], tag, ft[2]);
                 stype.f.push(f);
 
                 if (tag < 0) {
@@ -331,6 +319,8 @@ namespace sproto {
         		console.error("[sproto error]: .%s[%d] is not an %s (Is a %s)", args.name, args.i, type, res, value);
         		return null;
         	}
+
+            return type;
         }
 
         private fillSize(data, data_idx, sz){
@@ -467,6 +457,16 @@ namespace sproto {
             }
         }
 
+        getProtocol(name: string) {
+            return this.p[name];
+        }
+
+        /**
+         * typeName 协议名
+         * tbl 协议数据
+         * st 协议类
+         * spindex SprotoManager编号
+         */
         encode(typeName: string, tbl: any, st?, spindex?) {
             let sz = 0;
             while(true) {
@@ -478,8 +478,10 @@ namespace sproto {
 
                     let alloc_sz = this.buffer.length * 2;
                     if (alloc_sz > 65535) {
-                        console.log("[sproto warning]: alloc memory more 6k");
-                        // return;
+                        console.error("[sproto warning]: alloc memory more 6k");
+                        throw new Error('Perhaps memory overflow!');
+                        // console.log(this.buffer)
+                        // return null;
                     }
                     this.buffer = bufferjs.Buffer.allocUnsafe(alloc_sz);
                 } else {
@@ -800,7 +802,8 @@ namespace sproto {
             }
 
             if (type === undefined) {
-                console.error("[sproto error]: Invalid field type %s", typename, spindex);
+                console.log(this.t)
+                console.error("[sproto error]: Invalid field type '%s' \"%s\"", typename, tbl, spindex);
                 return SPROTO_ERROR_TYPE;
             }
 
@@ -811,12 +814,13 @@ namespace sproto {
             let index = 0;
             let data = header_sz;
             let sumsz = this.buffer.length - startpoint - header_sz;
+            
             if (sumsz < 0) {
                 return -1;
             }
 
             let args = {name: null, value: null, i: 0};
-
+            
             for (let f of type.f) {
                 let sz = -1;
                 let value = 0;
@@ -845,6 +849,8 @@ namespace sproto {
                         if (deatail_type === null) {
                             return SPROTO_ERROR_TYPE;
                         }
+                        sz = 1;
+                        break;
                     case "integer":
                         if (deatail_type === null) {
                             deatail_type = this.checkValue(args, "number");
@@ -949,7 +955,7 @@ namespace sproto {
                     this.buffer[i] = this.buffer[data + i - start];
                 }
             }
-
+            // console.log("size:", header_sz, sumsz, startpoint, index, data_sz)
             return SPROTO_SIZEOF_HEADER + index * SPROTO_SIZEOF_FIELD + data_sz;
         }
 
@@ -1007,7 +1013,7 @@ namespace sproto {
             
         }
 
-        private ldecode(typename: string, buffer: bufferjs.Buffer, startpoint:number, result: Object, st?, reqdecode?) {
+        public ldecode(typename: string, buffer: bufferjs.Buffer, startpoint:number, result: Object, st?, reqdecode?) {
             let fn = this.toWord(buffer, startpoint);
             let size = SPROTO_SIZEOF_HEADER;
 
@@ -1097,12 +1103,12 @@ namespace sproto {
             return size;
         }
 
-        encodePackage(typeName: string, tbl: Object) {
+        encodePack(typeName: string, tbl: Object) {
             let buffer = this.encode(typeName, tbl);
             return this.pack(buffer);
         }
 
-        decodePackage(typeName: string, buffer) {
+        unpackDecode(typeName: string, buffer) {
             return this.decode(typeName, this.unpack(buffer));
         }
     }
