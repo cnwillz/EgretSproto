@@ -69,7 +69,7 @@ set 3 {
     }
 }
 `;
-
+        //
         let sp = new Sproto(proto);
 
         console.log("======================test1");
@@ -78,22 +78,28 @@ set 3 {
         let req = client_request("foobar", { what: "hello", value: "lindx 不喜欢写代码" }, session);
         let data = sp.dispatch(req);
         //　如果是一个　request 请求， data　包含replay="REQUEST"　以及　result　数据
-        console.log(data.replay, data.result);
+        console.log(data);
 
         let resp = data.response({ ok: false });
         data = sp.dispatch(resp);
         // 如果是一个　response 响应，那么　data 包含　replay＝"RESPONSE", session, result
-        console.log(data.replay, data.session, data.result);
+        console.log(data);
 
         console.log("======================test2");
         let packbuffer = sp.pencode("package", {session: 12, type: 0});
         let rt = sp.pdecode("package", packbuffer);
         console.log(rt);
         console.log(rt["session"])
+        //*/
+
+        // let sm = new sproto.SprotoManager(proto);
+        // let pb = sm.encodePackage("package", {session: 12, type: 0});
+        // let rt = sm.decodePackage("package", pb);
+        // console.log(rt);
     }
 
     private onAddToStage(event: egret.Event) {
-        this.doTest();
+      
 
         egret.lifecycle.addLifecycleListener((context) => {
             // custom lifecycle plugin
@@ -119,6 +125,15 @@ set 3 {
 
     }
 
+    private testSocket() {
+        let ws = new egret.WebSocket();
+        try {
+            ws.connect("127.0.0.1", 8888);
+        } catch(e) {
+            console.error(e);
+        }
+    }
+
     private async runGame() {
         await this.loadResource()
         this.createGameScene();
@@ -128,6 +143,8 @@ set 3 {
         const userInfo = await platform.getUserInfo();
         console.log(userInfo);
 
+        this.doTest();
+        this.testSocket();
     }
 
     private async loadResource() {

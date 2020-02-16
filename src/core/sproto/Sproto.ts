@@ -3,22 +3,22 @@
  * @license BSD-2-Clause
  * git: https://gitee.com/lindx-code/sproto-ts
  */
-const gettype=Object.prototype.toString
+const _getType=Object.prototype.toString
 
 const SPROTO_TARRAY = 0x80;
-const CHUNK_SIZE = 1000;
-const SIZEOF_LENGTH = 4;
-const SIZEOF_HEADER  = 2;
-const SIZEOF_FIELD  = 2;
-const SIZEOF_INT64 = 8;
-const SIZEOF_INT32 = 4;
+const SPROTO_CHUNK_SIZE = 1000;
+const SPROTO_SIZEOF_LENGTH = 4;
+const SPROTO_SIZEOF_HEADER  = 2;
+const SPROTO_SIZEOF_FIELD  = 2;
+const SPROTO_SIZEOF_INT64 = 8;
+const SPROTO_SIZEOF_INT32 = 4;
 
-const ERROR_TYPE = -3;
+const SPROTO_ERROR_TYPE = -3;
 
-const ENCODE_BUFFERSIZE = 2050;
+const SPROTO_ENCODE_BUFFERSIZE = 2050;
 
-const REQUEST = 0;
-const RESPONSE = 1;
+const SPROTO_REQUEST = 0;
+const SPROTO_RESPONSE = 1;
 
 /*
  * gettype.call('aaaa')输出      [object String]
@@ -30,8 +30,8 @@ const RESPONSE = 1;
  * gettype.call([])    输出   [object Array]
  * gettype.call(function(){})     输出   [object Function]
 */
-function checktype(value, type) {
-	const typestr = gettype.call(value);
+function _checktype(value, type) {
+	const typestr = _getType.call(value);
 	let cmp = typestr.substring(8, typestr.length - 1);
 	cmp = cmp.toLowerCase();
 
@@ -43,7 +43,7 @@ function checktype(value, type) {
 }
 
 
-function isNull(val) {
+function _isNull(val) {
 	if (val === undefined || val === null) {
 		return true;
 	}
@@ -51,17 +51,17 @@ function isNull(val) {
 	return false;
 }
 
-function uint64_rshift(num, offset){
+function _uint64_rshift(num, offset){
     return Math.floor(num / Math.pow(2, offset));
 }
 
-function hi_low_uint64(low, hi){
+function _hi_low_uint64(low, hi){
     var value = (hi & 0xFFFFFFFF) * 0x100000000 + low;
     return value;
 }
 
-function checkInteger(num, offset:number = 31) {
-	let numh = uint64_rshift(num, offset);
+function _checkInteger(num, offset:number = 31) {
+	let numh = _uint64_rshift(num, offset);
     if (numh === 0 || numh === -1) {
     	return 4;
     } else {
@@ -69,17 +69,17 @@ function checkInteger(num, offset:number = 31) {
     }
 }
 
-function fill_size(data, data_idx, sz){
+function _fill_size(data, data_idx, sz){
     data[data_idx] = sz & 0xff;
     data[data_idx+1] = (sz >> 8) & 0xff;
     data[data_idx+2] = (sz >> 16) & 0xff;
     data[data_idx+3] = (sz >> 24) & 0xff;
-    return sz + SIZEOF_LENGTH;
+    return sz + SPROTO_SIZEOF_LENGTH;
 }
 
 
-function encode_integer(v, data, data_idx, size) {
-    if (size < SIZEOF_LENGTH * 2) {
+function _encode_integer(v, data, data_idx, size) {
+    if (size < SPROTO_SIZEOF_LENGTH * 2) {
     	return -1;
     }
 
@@ -87,11 +87,11 @@ function encode_integer(v, data, data_idx, size) {
     data[data_idx+5] = (v >> 8) & 0xff;
     data[data_idx+6] = (v >> 16) & 0xff;
     data[data_idx+7] = (v >> 24) & 0xff;
-    return fill_size(data, data_idx, 4);
+    return _fill_size(data, data_idx, 4);
 }
 
-function encode_uint64(v, data, data_idx, size) {
-	if (size < SIZEOF_LENGTH + SIZEOF_INT64) {
+function _encode_uint64(v, data, data_idx, size) {
+	if (size < SPROTO_SIZEOF_LENGTH + SPROTO_SIZEOF_INT64) {
 		return -1;
 	}
 
@@ -100,15 +100,15 @@ function encode_uint64(v, data, data_idx, size) {
 	data[data_idx + 6] = (v >> 16) & 0xff;
 	data[data_idx + 7] = (v >> 24) & 0xff;
 	
-	let hi =  uint64_rshift(v, 32);
+	let hi =  _uint64_rshift(v, 32);
 	data[data_idx + 8] = hi & 0xff;
 	data[data_idx + 9] = (hi >> 8) & 0xff;
 	data[data_idx + 10] = (hi >> 16) & 0xff;
 	data[data_idx + 11] = (hi >> 24) & 0xff;
-	return fill_size(data, data_idx, SIZEOF_INT64);
+	return _fill_size(data, data_idx, SPROTO_SIZEOF_INT64);
 }
 
-function decode_uint64(data, data_idx) {
+function _decode_uint64(data, data_idx) {
 	let result = 0;
 
 	result |= data[data_idx];
@@ -123,9 +123,9 @@ function decode_uint64(data, data_idx) {
 }
 
 
-function checkvalue(args, type: string) {
+function _checkvalue(args, type: string) {
 	let value = args.value;
-	let res = checktype(value, type);
+	let res = _checktype(value, type);
 	if (res !== true) {
 		console.error("[sproto error]: .%s[%d] is not an %s (Is a %s)", args.name, args.i, type, res, value);
 		return null;
@@ -134,7 +134,7 @@ function checkvalue(args, type: string) {
 	return type;
 }
 
-function uint32_to_uint64(data, data_idx: number, negative: number|boolean) {
+function _uint32_to_uint64(data, data_idx: number, negative: number|boolean) {
 	if (negative === 0 || negative === false) { 
 		data[data_idx++] = 0;
 		data[data_idx++] = 0;
@@ -149,7 +149,7 @@ function uint32_to_uint64(data, data_idx: number, negative: number|boolean) {
 }
 
 
-function gen_response(self, response, spindex, session) {
+function _gen_response(self, response, spindex, session) {
 	return function(args) {
 		self.header_tmp.type = null;
 		self.header_tmp.session = session;
@@ -165,15 +165,15 @@ function gen_response(self, response, spindex, session) {
 	};
 }
 
-class Field {
+class _Field {
 	constructor(public name: string, public tag: number, public type: string) {
 
 	}
 }
 
 
-class Stype {
-	public f: Field[] = [];
+class _Stype {
+	public f: _Field[] = [];
 	public maxn: number = 0;
 
 	constructor(public name: string) {
@@ -181,16 +181,16 @@ class Stype {
 	}
 }
 
-class Protocol {
-	public st: Stype[] = [null, null];
+class _Protocol {
+	public st: _Stype[] = [null, null];
 	constructor(public name: string, public tag: number) {
 
 	}
 }
 
 class Sproto {
-	public t: Stype[] = [];
-	public p: Protocol[] = [];
+	public t: _Stype[] = [];
+	public p: _Protocol[] = [];
 	private buffer: bufferjs.Buffer;
 	private sz: number;
 	private static sp_tb: Sproto[] = [];
@@ -214,7 +214,7 @@ class Sproto {
 			name = name.substr(1, name.length); // substr 去掉第一个字符的点.
 		}
 
-		let stype = new Stype(name);
+		let stype = new _Stype(name);
 		let content = type.input.replace(/.?{|}/g, "");
 		let lines = content.match(/\w+\s+\-?\d+\s*:\s*\*?\w+/gi);
 		let errsyntax = content.match(/[a-z]+\s*:\s*\*?[a-z]+/i)
@@ -223,7 +223,7 @@ class Sproto {
 			console.error("[sproto error]: syntax error at tag number:", errsyntax[0]);
 		}
 
-		if (isNull(lines)) {
+		if (_isNull(lines)) {
 			return stype;
 		}
 
@@ -235,7 +235,7 @@ class Sproto {
 		for (let i of lines) {
 			let ft = i.split(/\s*(\-?\d+)?\s*:\s*/g);
 			let tag = Number(ft[1]);
-			let f = new Field(ft[0], tag, ft[2]);
+			let f = new _Field(ft[0], tag, ft[2]);
 			stype.f.push(f);
 
 			if (tag < 0) {
@@ -270,7 +270,7 @@ class Sproto {
 			console.error("[sproto error]: syntax error at tag(%d) number less 0 at protocol %s", tag, name);
 		}
 
-		let proto = new Protocol(name, tag);
+		let proto = new _Protocol(name, tag);
 		this.p[name] = proto;
 		this.__pcatch[tag] = proto;
 
@@ -279,13 +279,13 @@ class Sproto {
 		if (requeststr) {
 			let req = ["request"];
 			req["input"] = requeststr[0];
-			proto.st[REQUEST] = this.type_create(req, name);
+			proto.st[SPROTO_REQUEST] = this.type_create(req, name);
 		}
 
 		if (responsestr) {
 			let resp = ["response"];
 			resp["input"] = responsestr[0];
-			proto.st[RESPONSE] = this.type_create(resp, name);
+			proto.st[SPROTO_RESPONSE] = this.type_create(resp, name);
 		}
 	}
 
@@ -301,7 +301,7 @@ class Sproto {
 			});
 		}
 
-		if (isNull(types) === false) {
+		if (_isNull(types) === false) {
 			for (let i = 0; i < types.length; i++) {
 				let mtype = types[i];
 				let typestr = mtype.match(/\.\w+/i);
@@ -313,7 +313,7 @@ class Sproto {
 		}
 
 		let protocols = text.match(/\w+\s+\-?\d+\s*{[\n\t\s]*(request\s*{[^{}]*})?[\n\t\s]*(response\s*{[^{}]*})?[\n\t\s]*}/ig);
-		if (isNull(protocols) === false) { 
+		if (_isNull(protocols) === false) { 
 			for (let i = 0; i < protocols.length; ++i) {
 				this.protocol_create(protocols[i]);
 			}
@@ -329,9 +329,9 @@ class Sproto {
 	private encode_integer_array(v, args, data, data_idx, size) {
 		let fillflag = data_idx;
 		let array_index = data_idx + 1;
-		let intlen = SIZEOF_INT32;
+		let intlen = SPROTO_SIZEOF_INT32;
 
-		size -= (1 + SIZEOF_LENGTH);
+		size -= (1 + SPROTO_SIZEOF_LENGTH);
 		if (size < 0) {
 			return -1;
 		}
@@ -339,36 +339,36 @@ class Sproto {
 		for (let i = 0; i < v.length; i++) {
 			args.value = v[i];
 			args.i = i;
-			if (checkvalue(args, "number") === null) {
-				return ERROR_TYPE;
+			if (_checkvalue(args, "number") === null) {
+				return SPROTO_ERROR_TYPE;
 			}
 			
 			let value = v[i];
-			let sz = checkInteger(value);
+			let sz = _checkInteger(value);
 
-			if (sz === SIZEOF_INT32) { 
+			if (sz === SPROTO_SIZEOF_INT32) { 
 				data[array_index++] = value & 0xff;
 				data[array_index++] = (value >> 8) & 0xff;
 				data[array_index++] = (value >> 16) & 0xff;
 				data[array_index++] = (value >> 24) & 0xff;
-				if (intlen === SIZEOF_INT64) {
-					uint32_to_uint64(data, array_index, value & 0x80000000);
+				if (intlen === SPROTO_SIZEOF_INT64) {
+					_uint32_to_uint64(data, array_index, value & 0x80000000);
 					array_index += 4;
 				}
 			} else {
-				if (sz != SIZEOF_INT64)
+				if (sz != SPROTO_SIZEOF_INT64)
 					return -1;
 
-				if (intlen === SIZEOF_INT32) {
-					size -= (SIZEOF_INT64 * (i - 1));
+				if (intlen === SPROTO_SIZEOF_INT32) {
+					size -= (SPROTO_SIZEOF_INT64 * (i - 1));
 					if (size < 0) {
 						return -1;
 					}
 
 					// 对前面 i-1 个32位的整数重新编码
 					for (let j = i - 1; j >= 0; --j) {
-						let start8 = data_idx + 1 + j * SIZEOF_INT64;
-						let start4 = data_idx + 1 + j * SIZEOF_INT32;
+						let start8 = data_idx + 1 + j * SPROTO_SIZEOF_INT64;
+						let start4 = data_idx + 1 + j * SPROTO_SIZEOF_INT32;
 						let k = start8;
 						
 						for (; k < start8 + 4; ++k) {
@@ -376,10 +376,10 @@ class Sproto {
 						}
 
 						//根据第三位决定后4位是否全为 0 或者全 0xff
-						uint32_to_uint64(data, k, data[start8 + 3] & 0x80);	
+						_uint32_to_uint64(data, k, data[start8 + 3] & 0x80);	
 					}
 
-					array_index = (data_idx + 1) + i * SIZEOF_INT64; //重新设置 array_index 起始位置
+					array_index = (data_idx + 1) + i * SPROTO_SIZEOF_INT64; //重新设置 array_index 起始位置
 				}
 
 				data[array_index++] = value & 0xff;
@@ -387,17 +387,17 @@ class Sproto {
 				data[array_index++] = (value >> 16) & 0xff;
 				data[array_index++] = (value >> 24) & 0xff;
 
-				let hi =  uint64_rshift(value, 32);
+				let hi =  _uint64_rshift(value, 32);
 				data[data_idx + 8] = hi & 0xff;
 				data[data_idx + 9] = (hi >> 8) & 0xff;
 				data[data_idx + 10] = (hi >> 16) & 0xff;
 				data[data_idx + 11] = (hi >> 24) & 0xff;
 
-				intlen = SIZEOF_INT64;
+				intlen = SPROTO_SIZEOF_INT64;
 			}
 
 			size -= intlen;
-			if (size < 0 || size < SIZEOF_INT64) {
+			if (size < 0 || size < SPROTO_SIZEOF_INT64) {
 				return -1;
 			}
 		}
@@ -416,20 +416,20 @@ class Sproto {
 		for (var i = 0; i < v.length; ++i) {
 			args.value = v[i];
 			args.i = i;
-			if (checkvalue(args, "string") === null) {
-				return ERROR_TYPE;
+			if (_checkvalue(args, "string") === null) {
+				return SPROTO_ERROR_TYPE;
 			}
 
 			let tu = bufferjs.Buffer.from(v[i]);
 			let len = tu.length;
-			size -= (SIZEOF_LENGTH + len);
+			size -= (SPROTO_SIZEOF_LENGTH + len);
 			if (size < 0) {
 				return -1;
 			}
 
 
-			let sz = fill_size(data, data_idx, len);
-			let pos = data_idx + SIZEOF_LENGTH;
+			let sz = _fill_size(data, data_idx, len);
+			let pos = data_idx + SPROTO_SIZEOF_LENGTH;
 			data.fill(tu, pos, pos + len);
 
 			data_idx += sz;
@@ -444,11 +444,11 @@ class Sproto {
 		for (var i = 0; i < v.length; ++i) {
 			args.value = v[i];
 			args.i = i;
-			if (checkvalue(args, "boolean") === null) {
-				return ERROR_TYPE;
+			if (_checkvalue(args, "boolean") === null) {
+				return SPROTO_ERROR_TYPE;
 			}
 
-			size -= SIZEOF_LENGTH;
+			size -= SPROTO_SIZEOF_LENGTH;
 			if (size < 0) {
 				return -1;
 			}
@@ -464,23 +464,23 @@ class Sproto {
 		let start = data_idx;
 		let total = 0;
 		for (let i = 0; i < v.length; ++i) {
-			size -= SIZEOF_LENGTH;
+			size -= SPROTO_SIZEOF_LENGTH;
 			if (size < 0) {
 				return -1;
 			}
-			sz = this.lencode(args.type, v[i], start + SIZEOF_LENGTH, null, args.spindex);
+			sz = this.lencode(args.type, v[i], start + SPROTO_SIZEOF_LENGTH, null, args.spindex);
 			if (sz < 0) {
-				if (sz === ERROR_TYPE) {
-					return ERROR_TYPE;
+				if (sz === SPROTO_ERROR_TYPE) {
+					return SPROTO_ERROR_TYPE;
 				}
 				return sz;
 			}
 
-			let tmpsz = fill_size(data, start, sz);
+			let tmpsz = _fill_size(data, start, sz);
 			size -= tmpsz;
 			start += tmpsz;
 
-			total += sz + SIZEOF_LENGTH;
+			total += sz + SPROTO_SIZEOF_LENGTH;
 		}
 
 		return total;
@@ -489,7 +489,7 @@ class Sproto {
 	private encode_array(v, args, data, data_idx, size) {
 		let value = null;
 		let sz = 0;
-		size -= SIZEOF_LENGTH;
+		size -= SPROTO_SIZEOF_LENGTH;
 
 		if (size < 0) {
 			return -1;
@@ -497,23 +497,23 @@ class Sproto {
 
 		switch(args.type) {
 		case "integer":
-			sz = this.encode_integer_array(v, args, data, data_idx + SIZEOF_LENGTH, size);
+			sz = this.encode_integer_array(v, args, data, data_idx + SPROTO_SIZEOF_LENGTH, size);
 			break;
 		case "string":
-			sz = this.encode_string_array(v, args, data, data_idx + SIZEOF_LENGTH, size);
+			sz = this.encode_string_array(v, args, data, data_idx + SPROTO_SIZEOF_LENGTH, size);
 			break;
 		case "boolean":
-			sz = this.encode_boolean_array(v, args, data, data_idx + SIZEOF_LENGTH, size);
+			sz = this.encode_boolean_array(v, args, data, data_idx + SPROTO_SIZEOF_LENGTH, size);
 			break;
 		default: 
-			sz = this.encode_object_array(v, args, data, data_idx + SIZEOF_LENGTH, size);
+			sz = this.encode_object_array(v, args, data, data_idx + SPROTO_SIZEOF_LENGTH, size);
 			break;
 		}
 
 		if (sz < 0) {
 			return sz;
 		}
-		return fill_size(data, data_idx, sz);
+		return _fill_size(data, data_idx, sz);
 	}
 
 	encode(typeName: string, tbl: any, st?, spindex?) {
@@ -521,7 +521,7 @@ class Sproto {
 		while(true) {
 			sz = this.lencode(typeName, tbl, 0, st, spindex);
 			if (sz < 0) {
-				if (sz === ERROR_TYPE) {
+				if (sz === SPROTO_ERROR_TYPE) {
 					return;
 				}
 
@@ -552,11 +552,11 @@ class Sproto {
 
 		if (type === undefined) {
 			console.error("[sproto error]: Invalid field type %s", typename, spindex);
-			return ERROR_TYPE;
+			return SPROTO_ERROR_TYPE;
 		}
 
-		let header_sz = startpoint + SIZEOF_HEADER + type.maxn * SIZEOF_FIELD;
-		let fieldidx = startpoint + SIZEOF_HEADER;
+		let header_sz = startpoint + SPROTO_SIZEOF_HEADER + type.maxn * SPROTO_SIZEOF_FIELD;
+		let fieldidx = startpoint + SPROTO_SIZEOF_HEADER;
 		let lasttag = -1;
 		let tag = 0;
 		let index = 0;
@@ -577,14 +577,14 @@ class Sproto {
 			args.name = f.name;
 			args.value = tu;
 
-			if (isNull(tu)) {
+			if (_isNull(tu)) {
 				continue;
 			}
 
 			if (f.type.charAt(0) === "*") {
-				deatail_type = checkvalue(args, "array");
+				deatail_type = _checkvalue(args, "array");
 				if (deatail_type === null) {
-					return ERROR_TYPE;
+					return SPROTO_ERROR_TYPE;
 				}
 				let t = f.type.substring(1, f.type.length);
 
@@ -592,74 +592,74 @@ class Sproto {
 			} else {
 				switch(f.type) {
 				case "boolean":
-					deatail_type = checkvalue(args, "boolean");
+					deatail_type = _checkvalue(args, "boolean");
 					if (deatail_type === null) {
-						return ERROR_TYPE;
+						return SPROTO_ERROR_TYPE;
 					}
 				case "integer":
 					if (deatail_type === null) {
-						deatail_type = checkvalue(args, "number");
+						deatail_type = _checkvalue(args, "number");
 						if (deatail_type === null) {
-							return ERROR_TYPE;
+							return SPROTO_ERROR_TYPE;
 						}
 					}
 					
-					sz = checkInteger(tu);
+					sz = _checkInteger(tu);
 					if (sz == 4) {
 						value = tu >>> 0;						
 						if (value < 0x7fff) {
 							value = (value + 1) * 2;
 						} else {
-							sz = encode_integer(value, this.buffer, data, sumsz);
+							sz = _encode_integer(value, this.buffer, data, sumsz);
 							value = 0;
 						}
 					} else if (sz == 8) {	//value is int64
-						sz = encode_uint64(tu, this.buffer, data, sumsz);
+						sz = _encode_uint64(tu, this.buffer, data, sumsz);
 					}
 					
 					break;
 				case "string":
-					deatail_type = checkvalue(args, "string");
+					deatail_type = _checkvalue(args, "string");
 					if (deatail_type === null) {
-						return ERROR_TYPE;
+						return SPROTO_ERROR_TYPE;
 					}
 				default:
 					let isstring = deatail_type;
 					if (deatail_type === null) {
-						deatail_type = checkvalue(args, "object");
+						deatail_type = _checkvalue(args, "object");
 						if (deatail_type === null) {
-							return ERROR_TYPE;
+							return SPROTO_ERROR_TYPE;
 						}
 					}
 
 					let fsz = 0;
 					if (isstring) {
 						tu = bufferjs.Buffer.from(tu);
-						if (sumsz - data - tu.length - SIZEOF_LENGTH < 0) {
+						if (sumsz - data - tu.length - SPROTO_SIZEOF_LENGTH < 0) {
 							sz = -1;
 							break;
 						}
 						fsz = tu.length;
-						let value_idx = data + SIZEOF_LENGTH;
+						let value_idx = data + SPROTO_SIZEOF_LENGTH;
 						this.buffer.fill(tu, value_idx, value_idx + fsz);
 					} else {
-						fsz = this.lencode(f.type, tu, data + SIZEOF_LENGTH, null, spindex);
+						fsz = this.lencode(f.type, tu, data + SPROTO_SIZEOF_LENGTH, null, spindex);
 					}
 					if (fsz < 0) {
-						if (fsz === ERROR_TYPE) {
-							return ERROR_TYPE;
+						if (fsz === SPROTO_ERROR_TYPE) {
+							return SPROTO_ERROR_TYPE;
 						}
 						sz = -1;
 					} else {
-						sz = fill_size(this.buffer, data, fsz);
+						sz = _fill_size(this.buffer, data, fsz);
 					}
 					break;
 				}
 			}
 
 			if (sz < 0) {
-				if (sz === ERROR_TYPE) {
-					return ERROR_TYPE;
+				if (sz === SPROTO_ERROR_TYPE) {
+					return SPROTO_ERROR_TYPE;
 				}
 				return -1;
 			}
@@ -695,13 +695,13 @@ class Sproto {
 		data = header_sz;
 
 		if (index != type.maxn) {
-			let start = startpoint + SIZEOF_HEADER + index * SIZEOF_FIELD;
+			let start = startpoint + SPROTO_SIZEOF_HEADER + index * SPROTO_SIZEOF_FIELD;
 			for (var i = start; i < start + data_sz; i++) {
 				this.buffer[i] = this.buffer[data + i - start];
 			}
 		}
 
-		return SIZEOF_HEADER + index * SIZEOF_FIELD + data_sz;
+		return SPROTO_SIZEOF_HEADER + index * SPROTO_SIZEOF_FIELD + data_sz;
 	}
 
 	decode_array(type: string, buffer, data_idx: number, sz: number, st?, reqdecode?) {
@@ -711,26 +711,26 @@ class Sproto {
 		case "integer":
 			let len = buffer[data_idx++];
 			--sz;
-			if (len === SIZEOF_INT32) {
-				if (sz % SIZEOF_INT32 != 0) {
+			if (len === SPROTO_SIZEOF_INT32) {
+				if (sz % SPROTO_SIZEOF_INT32 != 0) {
 					return false;
 				}
 
-				for (let i = 0; i < sz/SIZEOF_INT32; ++i) {
+				for (let i = 0; i < sz/SPROTO_SIZEOF_INT32; ++i) {
 					result[i] = this.todword(buffer, data_idx);
-					data_idx += SIZEOF_INT32;
+					data_idx += SPROTO_SIZEOF_INT32;
 				}
-			} else if (len === SIZEOF_INT64) {
-				if (sz % SIZEOF_INT64 !== 0) {
+			} else if (len === SPROTO_SIZEOF_INT64) {
+				if (sz % SPROTO_SIZEOF_INT64 !== 0) {
 					return false;
 				}
 
-				for (let i = 0; i < sz/SIZEOF_INT64; ++i) {
+				for (let i = 0; i < sz/SPROTO_SIZEOF_INT64; ++i) {
 					let	low = this.todword(buffer, data_idx, true);
-					let	hi = this.todword(buffer, data_idx + SIZEOF_INT32, true);
+					let	hi = this.todword(buffer, data_idx + SPROTO_SIZEOF_INT32, true);
 
-					result[i] = hi_low_uint64(low, hi);
-					data_idx += SIZEOF_INT64;
+					result[i] = _hi_low_uint64(low, hi);
+					data_idx += SPROTO_SIZEOF_INT64;
 				}	
 			} else {
 				result = false;
@@ -739,9 +739,9 @@ class Sproto {
 		case "string":
 			let i = 0;
 			for (;;) {
-				sz -= SIZEOF_LENGTH;
+				sz -= SPROTO_SIZEOF_LENGTH;
 				let len = this.todword(buffer, data_idx);
-				data_idx += SIZEOF_LENGTH;
+				data_idx += SPROTO_SIZEOF_LENGTH;
 				sz -= len;
 
 				result[i++] = buffer.toString("utf8", data_idx, data_idx + len);
@@ -768,9 +768,9 @@ class Sproto {
 
 			let j = 0;
 			for (;;) {
-				sz -= SIZEOF_LENGTH;
+				sz -= SPROTO_SIZEOF_LENGTH;
 				let len = this.todword(buffer, data_idx);
-				data_idx += SIZEOF_LENGTH;
+				data_idx += SPROTO_SIZEOF_LENGTH;
 				result[j] = {};
 
 				this.ldecode(type, buffer, data_idx, result[j++], null, reqdecode);
@@ -802,10 +802,10 @@ class Sproto {
 
 	private ldecode(typename: string, buffer: bufferjs.Buffer, startpoint:number, result: Object, st?, reqdecode?) {
 		let fn = this.toword(buffer, startpoint);
-		let size = SIZEOF_HEADER;
+		let size = SPROTO_SIZEOF_HEADER;
 
-		let field_idx = startpoint + SIZEOF_HEADER;
-		let data_idx = startpoint + SIZEOF_HEADER + fn * SIZEOF_FIELD;
+		let field_idx = startpoint + SPROTO_SIZEOF_HEADER;
+		let data_idx = startpoint + SPROTO_SIZEOF_HEADER + fn * SPROTO_SIZEOF_FIELD;
 		let tag = -1;
 		let args = {name: null, type: null};
 
@@ -814,8 +814,8 @@ class Sproto {
 
 			let sz = 0;
 			let value = this.toword(buffer, field_idx);
-			field_idx += SIZEOF_FIELD;
-			size += SIZEOF_FIELD;
+			field_idx += SPROTO_SIZEOF_FIELD;
+			size += SPROTO_SIZEOF_FIELD;
 
 			if ((value & 1) !== 0) {
 				tag += (value >> 1);
@@ -832,9 +832,9 @@ class Sproto {
 
 			if (value < 0) {
 				sz = this.todword(buffer, currentdata_idx);
-				currentdata_idx += SIZEOF_LENGTH;
+				currentdata_idx += SPROTO_SIZEOF_LENGTH;
 				data_idx = currentdata_idx + sz;
-				size += SIZEOF_LENGTH + sz;
+				size += SPROTO_SIZEOF_LENGTH + sz;
 
 				if (f.type.charAt(0) === '*') {
 					let array_res :any = [];
@@ -855,14 +855,14 @@ class Sproto {
 					case "integer":
 						let low = this.todword(buffer, currentdata_idx);
 						let hi = 0;
-						if (sz === SIZEOF_INT64) {
+						if (sz === SPROTO_SIZEOF_INT64) {
 							low = this.todword(buffer, currentdata_idx, true);
-							hi = this.todword(buffer, currentdata_idx + SIZEOF_INT32, true);
-						} else if (sz !== SIZEOF_INT32) {
+							hi = this.todword(buffer, currentdata_idx + SPROTO_SIZEOF_INT32, true);
+						} else if (sz !== SPROTO_SIZEOF_INT32) {
 							return -1;
 						}
 
-						result[f.name] = hi_low_uint64(low, hi);
+						result[f.name] = _hi_low_uint64(low, hi);
 						break;
 					default:
 						let subres = {};
@@ -1119,7 +1119,7 @@ class Sproto {
 	}
 
 	private vquerytype(name: string, reqdecode?) {
-		if (isNull(reqdecode)) {
+		if (_isNull(reqdecode)) {
 			return this.t[name];
 		} else {
 			let sp = Sproto.sp_tb[reqdecode];
@@ -1133,7 +1133,7 @@ class Sproto {
 
 	private findtag(typename: string, tag: number, st?, reqdecode?) {
 		let type = null;
-		if (!isNull(reqdecode) && isNull(st)) {
+		if (!_isNull(reqdecode) && _isNull(st)) {
 			let sp = Sproto.sp_tb[reqdecode];
 			type = sp.t[typename];
 		} else {
@@ -1161,7 +1161,7 @@ class Sproto {
 	attach() {
 		return function (name, args, session?) {
 			let p = this.queryprotocol(name);
-			if (isNull(p)) {
+			if (_isNull(p)) {
 				console.error("[sproto error]: can't found ", name);
 				return ;
 			}
@@ -1171,11 +1171,11 @@ class Sproto {
 			let header = this.encode(this.__pack, this.header_tmp);
 
 			if (session) {
-				this.__session[session] = p.st[RESPONSE] || true;
+				this.__session[session] = p.st[SPROTO_RESPONSE] || true;
 			}
 
-			if (p.st[REQUEST]) {
-				let content = this.encode(p.st[REQUEST].name, args, p.st[REQUEST]);
+			if (p.st[SPROTO_REQUEST]) {
+				let content = this.encode(p.st[SPROTO_REQUEST].name, args, p.st[SPROTO_REQUEST]);
 				let sz = header.length + content.length;
 				return this.pack(bufferjs.Buffer.concat([header, content], sz));
 			} else {
@@ -1206,8 +1206,8 @@ class Sproto {
 				p = this.__pcatch[header.type];
 			}
 
-			if (p && p.st[REQUEST]) {
-				let err = this.ldecode(p.st[REQUEST].name, bin, sz, result, p.st[REQUEST], spindex);
+			if (p && p.st[SPROTO_REQUEST]) {
+				let err = this.ldecode(p.st[SPROTO_REQUEST].name, bin, sz, result, p.st[SPROTO_REQUEST], spindex);
 				if (err < 0) {
 					console.error("[sproto error]: decode failed");
 					return data;
@@ -1221,7 +1221,7 @@ class Sproto {
 				data.replay = "REQUEST"
 				data.name = p.name
 				data.result = result
-				data.response = gen_response(this, p.st[RESPONSE], spindex, session).bind(this)
+				data.response = _gen_response(this, p.st[SPROTO_RESPONSE], spindex, session).bind(this)
 				return data
 			} else {
 				data.replay = "REQUEST"
@@ -1233,13 +1233,13 @@ class Sproto {
 		} else {
 			// response
 			let session = this.header_tmp.session;
-			if (isNull(session)) {
+			if (_isNull(session)) {
 				console.error("[sproto error]: session not found");
 				return data;
 			}
 
 			let response = this.__session[session];
-			if (isNull(response)) {
+			if (_isNull(response)) {
 				console.error("[sproto error]: Unknown session", session);
 				return data;
 			}
