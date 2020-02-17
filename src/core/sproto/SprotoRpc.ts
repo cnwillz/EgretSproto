@@ -52,7 +52,7 @@ namespace sproto {
         }
 
         public unpackMessage(buffer: bufferjs.Buffer, spindex: number = 0) {
-            let data = {replay: null, name: null, result: null, response: null, session: null}
+            let data = {type: null, name: null, content: null, response: null, session: null}
             let bin = this.s2c.unpack(buffer);
 
             let header = this.newPackageHeader(null, null);
@@ -78,15 +78,15 @@ namespace sproto {
                 
                 let session = header.session;
                 if (session) {
-                    data.replay = "REQUEST"
+                    data.type = "REQUEST"
                     data.name = p.name
-                    data.result = result
+                    data.content = result
                     data.response = this.generatePackResponser(p.st[SPROTO_RESPONSE], spindex, session).bind(this)
                     return data
                 } else {
-                    data.replay = "REQUEST"
+                    data.type = "REQUEST"
                     data.name = p.name
-                    data.result = result
+                    data.content = result
                     return data
                 }
 
@@ -106,7 +106,7 @@ namespace sproto {
 
                 this.sessions[<string><any>session] = null;
                 if (msg.response === true) {
-                    data.replay = "RESPONSE"
+                    data.type = "RESPONSE"
                     data.session = session
                     return data
                 } else {
@@ -116,9 +116,9 @@ namespace sproto {
                         console.error("[sproto error]: decode failed");
                         return data;
                     }
-                    data.replay = "RESPONSE"
+                    data.type = "RESPONSE"
                     data.session = session
-                    data.result = result
+                    data.content = result
                     return data;
                 }
             }

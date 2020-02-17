@@ -86,6 +86,10 @@ heartbeat 1 {}
         let res = srpc.unpackMessage(pk)
         console.log(res)
         res.response(null)
+
+
+        let gs = new network.GameSocket(s2c, c2s);
+        gs.initSocket();
     }
 
     private onAddToStage(event: egret.Event) {
@@ -116,15 +120,6 @@ heartbeat 1 {}
 
     }
 
-    private testSocket() {
-        let ws = new egret.WebSocket();
-        try {
-            ws.connect("127.0.0.1", 8888);
-        } catch(e) {
-            console.error(e);
-        }
-    }
-
     private async runGame() {
         await this.loadResource()
         this.createGameScene();
@@ -137,7 +132,6 @@ heartbeat 1 {}
         this.doTest();
         // console.log("test2() start")
         // this.test2();
-        // this.testSocket();
     }
 
     private async loadResource() {
