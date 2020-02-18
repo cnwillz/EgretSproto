@@ -8,7 +8,6 @@ namespace sproto {
         }
 
         public packRequest(proto: string, data: any, session: number = 0, ud: any = null) {
-            console.log("pack", session)
             let protocol = this.c2s.getProtocol(proto)
             let tag = protocol.tag
             let header = this.newPackageHeader(protocol.tag, session, ud)
@@ -31,9 +30,8 @@ namespace sproto {
                 message.request = data
                 message.response = protocol.st[SPROTO_RESPONSE] || true
                 message.tag = tag
-                console.log(this.sessions)
+                
                 this.sessions[<string><any>session] = message
-                console.log(this.sessions)
             }
 
             return packBuf

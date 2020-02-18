@@ -108,12 +108,11 @@ namespace network {
                 console.log("callback handshake", data)
             })
             this.sendRequest("set", { what : "hello", value : "world" }, function(data) {
-                console.log("callback set", data)
-
                  this.sendRequest("get", { what : "hello"}, function(data) {
                      console.log("get", data)
                  })
             }.bind(this))
+            this.sendRequest("say", { msg : "say something" })
         }
 
         private onSocketClose(): void {
