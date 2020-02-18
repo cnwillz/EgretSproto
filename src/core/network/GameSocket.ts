@@ -48,6 +48,28 @@ namespace network {
         public dispatch(buffer: bufferjs.Buffer): any {
             let message = this.rpc.unpackMessage(buffer);
             console.log(message)
+            let name = message.name;
+
+            if(name) {
+                //request
+                let handler = this.handlers[name];
+                if(handler) {
+                    handler(message.content);
+                } else {
+                    console.warn(name + " 协议没有注册处理回调!")
+                }
+                return;
+            } else {
+                //response
+                let handler = this.sessions[message.session];
+                if(handler) {
+                    handler(message.content);
+                } else {
+                    console.error("会话不存在:", message.session)
+                }
+            }
+            
+            
         }
 
         public sendRequest(proto: string, data: any = null, handler: Function = null): any {
@@ -57,11 +79,12 @@ namespace network {
                 sid = this.sessionId;
                 this.sessions[<string><any>sid] = handler;
             }
-            //TODO: 复制缓存区可能存在性能损耗
+            
             let buffer = this.rpc.packRequest(proto, data, sid);
+            //构造函数内部会将bytes直接赋值为buffer，不会额外分配
             var byte:egret.ByteArray = new egret.ByteArray(buffer);
             this.socket.writeBytes(byte);
-            console.log(buffer, byte)
+            //console.log(buffer, byte)
         }
 
         private onReceiveMessage(e: egret.Event): void {
@@ -69,21 +92,24 @@ namespace network {
             var byte:egret.ByteArray = new egret.ByteArray();
             //读取数据
             this.socket.readBytes(byte);
-            //TODO: 复制缓存区可能存在性能损耗
+            //新创建的缓存区会直接引用给定的字节数组，不会额外分配
             let buffer = bufferjs.Buffer.from(byte.bytes);
-            console.log(buffer)
+            // console.log(buffer)
             this.dispatch(buffer)
         }
 
         private onSocketOpen(): void {
             console.info("WebSocketOpen")
-            this.socket.writeUTF("hello skynet")
-            this.socket.writeUTF("hello skynet")
-            this.socket.writeUTF("hello skynet")
-            this.socket.writeUTF("hello skynet")
-            this.socket.writeUTF("hello skynet")
-            this.sendRequest("handshake")
-            this.sendRequest("set", { what : "hello", value : "world" })
+            this.addHandler("heartbeat", function(data) {
+                console.log("heartbeat", data)
+            })
+
+            this.sendRequest("handshake", null, function(data) {
+                console.log("callback handshake", data)
+            })
+            this.sendRequest("set", { what : "hello", value : "world" }, function(data) {
+                console.log("callback set", data)
+            })
         }
 
         private onSocketClose(): void {

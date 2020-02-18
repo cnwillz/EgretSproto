@@ -41,6 +41,7 @@ class Main extends egret.DisplayObjectContainer {
 .package {
 	type 0 : integer
 	session 1 : integer
+    ud 2 : string
 }
 
 handshake 1 {
@@ -71,6 +72,7 @@ quit 4 {}
 .package {
 	type 0 : integer
 	session 1 : integer
+    ud 2 : string
 }
 
 heartbeat 1 {}
@@ -78,14 +80,18 @@ heartbeat 1 {}
         let s2c = new sproto.SprotoManager(s2cProto)
         let c2s = new sproto.SprotoManager(c2sProto)
         let rpc = new sproto.SprotoRpc(s2c, c2s)
-        let srpc = new sproto.SprotoRpc(c2s, s2c)
+        // let srpc = new sproto.SprotoRpc(c2s, s2c)
 
-        let pk = rpc.packRequest("handshake", null, 1)
+        // let pk = rpc.packRequest("handshake", null, 1)
         // console.log(pk)
-        pk = rpc.packRequest("set", { what : "hello", value : "world" }, 2)
-        let res = srpc.unpackMessage(pk)
-        console.log(res)
-        res.response(null)
+        // pk = rpc.packRequest("set", { what : "hello", value : "world" }, 2)
+        // let res = srpc.unpackMessage(pk)
+        // console.log(res)
+        // res.response(null)
+
+        // pk = srpc.packRequest("heartbeat", null)
+        // res = rpc.unpackMessage(pk, 1)
+        // console.log("heartbeat", pk, res)
 
 
         let gs = new network.GameSocket(s2c, c2s);
