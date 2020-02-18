@@ -109,7 +109,11 @@ namespace network {
             })
             this.sendRequest("set", { what : "hello", value : "world" }, function(data) {
                 console.log("callback set", data)
-            })
+
+                 this.sendRequest("get", { what : "hello"}, function(data) {
+                     console.log("get", data)
+                 })
+            }.bind(this))
         }
 
         private onSocketClose(): void {
