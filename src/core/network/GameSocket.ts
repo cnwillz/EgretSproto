@@ -47,7 +47,6 @@ namespace network {
 
         public dispatch(buffer: bufferjs.Buffer): any {
             let message = this.rpc.unpackMessage(buffer);
-            console.log(message)
             let name = message.name;
 
             if(name) {
@@ -84,7 +83,6 @@ namespace network {
             //构造函数内部会将bytes直接赋值为buffer，不会额外分配
             var byte:egret.ByteArray = new egret.ByteArray(buffer);
             this.socket.writeBytes(byte);
-            //console.log(buffer, byte)
         }
 
         private onReceiveMessage(e: egret.Event): void {
@@ -94,22 +92,22 @@ namespace network {
             this.socket.readBytes(byte);
             //新创建的缓存区会直接引用给定的字节数组，不会额外分配
             let buffer = bufferjs.Buffer.from(byte.bytes);
-            // console.log(buffer)
+
             this.dispatch(buffer)
         }
 
         private onSocketOpen(): void {
             console.info("WebSocketOpen")
             this.addHandler("heartbeat", function(data) {
-                console.log("heartbeat", data)
+                console.log("heartbeat")
             })
 
             this.sendRequest("handshake", null, function(data) {
-                console.log("callback handshake", data)
+                console.log(data.msg)
             })
             this.sendRequest("set", { what : "hello", value : "world" }, function(data) {
                  this.sendRequest("get", { what : "hello"}, function(data) {
-                     console.log("get", data)
+                     console.log("get", data.result)
                  })
             }.bind(this))
             this.sendRequest("say", { msg : "say something" })
